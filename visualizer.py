@@ -56,6 +56,9 @@ app.layout = html.Div([
 @app.callback(
     Output('output-div', 'children'),
     Output('robot-graph', 'figure'),
+    Output('IMU_roll-slider', 'value'),
+    Output('IMU_pitch-slider', 'value'),
+    Output('IMU_yaw-slider', 'value'),
 
     Input('IMU_roll-slider', 'value'),
     Input('IMU_pitch-slider', 'value'),
@@ -82,8 +85,14 @@ def update_output(IMU_roll, IMU_pitch, IMU_yaw, target_roll, target_pitch, targe
 
     #假设它能完美达到目标姿态，重置当前姿态为目标姿态
 
+    IMU_roll = target_roll
+    IMU_pitch = target_pitch
+    IMU_yaw = target_yaw
 
-    return html.Pre("\n".join(lines)), fig
+    Run_posture_control.q_prev = target_quaternion
+
+    return html.Pre("\n".join(lines)), fig, IMU_roll, IMU_pitch, IMU_yaw
+
 def build_figure(hexapod):
     fig = go.Figure()
 
