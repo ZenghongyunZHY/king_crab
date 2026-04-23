@@ -64,6 +64,18 @@ class Quaternion_tools:
         if norm < 1e-12:
             raise ValueError("quaternion norm is too small to normalize")
         return [w/norm, a/norm, b/norm, c/norm]
+    
+    #四元素乘法
+    def quat_multiply(self, q1, q2):
+        w1, a1, b1, c1 = q1
+        w2, a2, b2, c2 = q2
+
+        w = w1*w2 - a1*a2 - b1*b2 - c1*c2
+        a = w1*a2 + a1*w2 + b1*c2 - c1*b2
+        b = w1*b2 - a1*c2 + b1*w2 + c1*a2
+        c = w1*c2 + a1*b2 - b1*a2 + c1*w2
+
+        return [w, a, b, c]
 class Posture_control:
     def __init__(self):
         self.quaternion_tools = Quaternion_tools() #创建四元数工具实例
@@ -479,6 +491,10 @@ class run_posture_control:
             self.hexapode.leg_endpoint[i] = [per_leg_point[3*i+2][0], per_leg_point[3*i+2][1], per_leg_point[3*i+2][2]]
 
         self.hexapode.per_leg_point = per_leg_point
+
+        self.q_now = [1, 0, 0, 0] #初始姿态四元数设置为单位四元数
+        self.q_prev = [1, 0, 0, 0] #上一次姿态四元数设置为单位四元数
+        
         return self.hexapode
     
     def run(self, IMU_quaternion, target_quaternion, translation):
@@ -496,12 +512,7 @@ class run_posture_control:
         #深拷贝
         self.q_now = IMU_quaternion[:]
         self.q_prev = self.quaternion_tools.quat_conjugate(self.q_prev) #计算上一次姿态四元数的共轭
-        q_delta = [
-            self.q_now[0]*self.q_prev[0] - self.q_now[1]*self.q_prev[1] - self.q_now[2]*self.q_prev[2] - self.q_now[3]*self.q_prev[3],
-            self.q_now[0]*self.q_prev[1] + self.q_now[1]*self.q_prev[0] + self.q_now[2]*self.q_prev[3] - self.q_now[3]*self.q_prev[2],
-            self.q_now[0]*self.q_prev[2] - self.q_now[1]*self.q_prev[3] + self.q_now[2]*self.q_prev[0] + self.q_now[3]*self.q_prev[1],
-            self.q_now[0]*self.q_prev[3] + self.q_now[1]*self.q_prev[2] - self.q_now[2]*self.q_prev[1] + self.q_now[3]*self.q_prev[0]
-        ]
+        q_delta = self.quaternion_tools.quat_multiply(self.q_now, self.q_prev) #计算旋转增量四元数
         self.q_prev = self.q_now[:] # 更新上一次姿态四元数
 
         self.hexapode.body_endpoint, self.hexapode.leg_endpoint = self.posture_control.update_endpoint(q_delta, translation, self.hexapode.body_endpoint, self.hexapode.leg_endpoint)
